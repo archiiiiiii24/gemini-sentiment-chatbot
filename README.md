@@ -1,151 +1,60 @@
-# ==========================================
-# 1. SETUP & LIBRARIES
-# ==========================================
-# We need to install the Google AI library first
-!pip install -q -U google-generativeai
+# AI-Powered Sentiment Chatbot
 
-import google.generativeai as google_ai
-import getpass
-import os
+A production-minded Python chatbot that conducts a conversation with a user, performs real-time sentiment analysis using Google's Gemini LLM (Tier 2), and generates a conversational summary of the user's mood (Tier 1).
 
-# ==========================================
-# 2. CONFIGURATION
-# ==========================================
-print("🔒 SECURE LOGIN")
-print("Please paste your Google API Key (starts with AIza):")
-# Using getpass hides the key when you paste it for security
-my_key = getpass.getpass("Input Key > ")
+## 🚀 How to Run (Important)
 
-# Connect to Google's servers
-google_ai.configure(api_key=my_key)
+**Recommended Platform: Google Colab**
+The source code (`main.py`) includes specific setup commands (`!pip install`) optimized for cloud environments. Please follow these steps to run it without errors:
 
-# We are using the 'gemini-2.0-flash' model because it is fast and efficient
-# Note: Ensure your API key has access to this specific model version
-ai_model = google_ai.GenerativeModel('gemini-2.0-flash')
+1. Open [Google Colab](https://colab.research.google.com/).
+2. Create a **New Notebook**.
+3. Copy the **entire content** of `main.py` from this repository.
+4. Paste it into the Colab code cell.
+5. Click the **Play (▶️)** button.
+6. When prompted, paste your **Google Gemini API Key** securely into the input box.
 
-# ==========================================
-# 3. THE BOT LOGIC (TIER 1 & 2)
-# ==========================================
-class SentimentAssistant:
-    def __init__(self):
-        # This list tracks the conversation for the Tier 1 summary later
-        self.session_data = []
-        
-        # Initialize the chat session
-        self.conversation = ai_model.start_chat(history=[])
-        
-        # SYSTEM PROMPT: This defines the bot's "Personality" and "Rules"
-        # I am telling it strictly how to format answers so I can parse them easily
-        self.conversation.send_message("""
-        INSTRUCTIONS:
-        You are a helpful "Feedback Assistant" for a tech company.
-        
-        For every message I type, you must:
-        1. Detect the emotion (Positive, Negative, or Neutral).
-        2. Write a polite, professional reply.
-        
-        STRICT FORMAT REQUIRED:
-        [STATUS]: <Sentiment Label>
-        [MSG]: <Your Reply>
-        
-        Do not write anything else.
-        """)
+*(Note: If running locally on a standard Python terminal, please remove the first line `!pip install...` to avoid syntax errors).*
 
-    def handle_user_input(self, text_in):
-        """
-        Tier 2 Implementation: 
-        Takes user input, sends to AI, and extracts real-time sentiment.
-        """
-        try:
-            # Send text to Google Gemini
-            response = self.conversation.send_message(text_in)
-            raw_text = response.text
-            
-            # Default fallback values
-            detected_mood = "Neutral"
-            bot_reply = raw_text
-            
-            # PARSING LOGIC:
-            # We split the AI's response by lines to find our tags
-            clean_lines = raw_text.split('\n')
-            for line in clean_lines:
-                if "[STATUS]:" in line:
-                    # Remove the tag and clean up spaces/symbols
-                    detected_mood = line.replace("[STATUS]:", "").replace("*", "").strip()
-                elif "[MSG]:" in line:
-                    bot_reply = line.replace("[MSG]:", "").strip()
-            
-            # Save this turn to our session history (Tier 1 requirement)
-            self.session_data.append(f"User said: '{text_in}' -> Mood: {detected_mood}")
-            
-            return detected_mood, bot_reply
-            
-        except Exception as error:
-            return "Error", f"System Issue: {error}"
+## 🛠 Chosen Technologies
 
-    def create_session_report(self):
-        """
-        Tier 1 Implementation:
-        Sends the full chat history back to the AI to get a final summary.
-        """
-        if not self.session_data:
-            return "No data to analyze."
-            
-        # Join all history into one big string
-        full_log = "\n".join(self.session_data)
-        
-        # Ask the AI to summarize the trend
-        prompt = f"""
-        Analyze this chat log:
-        {full_log}
-        
-        Task: Give me a 1-sentence summary of how the user's mood changed from start to finish.
-        """
-        
-        try:
-            summary_resp = ai_model.generate_content(prompt)
-            return summary_resp.text
-        except:
-            return "Unable to generate report."
+- **Language:** Python 3
+- **Core Engine:** **Google Gemini 2.0 Flash** (via `google-generativeai` library).
+- **Security:** `getpass` module for secure, non-visible API key input.
 
-# ==========================================
-# 4. MAIN EXECUTION LOOP
-# ==========================================
-def start_program():
-    bot = SentimentAssistant()
+**Why Gemini (LLM) over VADER?**
+Standard lexicon libraries (like NLTK/VADER) often fail to detect sarcasm or complex emotional context. By using a Large Language Model, this chatbot understands nuance, slang, and context, providing significantly higher accuracy for the assignment's sentiment requirements.
+
+## 🧠 Explanation of Sentiment Logic
+
+The chatbot uses a **Generative AI** approach with structured prompting:
+
+1. **System Prompting:** The AI is initialized with a specific persona ("Feedback Assistant") and a strict output rule:
+   > `[STATUS]: <Sentiment Label>`
+   > `[MSG]: <Reply>`
+2. **Tier 2 (Statement-Level Analysis):**
+   - Every user message is sent to the LLM immediately.
+   - The Python script uses string parsing to extract the text after `[STATUS]:`.
+   - This allows the bot to display the sentiment (`Positive`, `Negative`, `Neutral`) in real-time alongside the response.
+3. **Tier 1 (Conversation-Level Analysis):**
+   - The script maintains a local list (`session_data`) of the entire conversation.
+   - Upon exit, this full history is sent back to the LLM with a prompt to "summarize the mood trend," generating a sophisticated final report.
+
+## ✅ Status of Tier 2 Implementation
+
+**Status: COMPLETED**
+- The chatbot performs sentiment evaluation for **every user message individually**.
+- The sentiment (Positive/Negative/Neutral) is displayed in the console immediately after the user types, meeting the real-time requirement.
+
+## 🧪 Tests
+
+A `tests.py` file is included in the repository. It contains unit tests using `unittest.mock` to verify the string parsing logic and history tracking without needing to make actual API calls to Google.
+
+## ✨ Highlights of Innovations (Bonus)
+
+- **LLM Integration:** Replaced standard "bag-of-words" logic with a state-of-the-art Large Language Model for human-like understanding.
+- **Robust Parsing:** Implemented a custom parsing system to separate the AI's "internal thought" (Sentiment) from its "external speech" (Reply).
+- **Secure Key Handling:** Utilized `getpass` to prevent API keys from being visible in the console or hardcoded in the source file.
+        
+        
     
-    print("\n" + "▒"*40)
-    print("   SENTIMENT ANALYSIS BOT (AI POWERED)")
-    print("   Type 'exit' to close the session.")
-    print("▒"*40 + "\n")
-
-    while True:
-        # Get input
-        u_input = input("You > ")
-        
-        # Exit condition
-        if u_input.lower() in ['exit', 'quit', 'bye']:
-            break
-            
-        if not u_input.strip():
-            continue
-
-        # --- TIER 2: REAL-TIME OUTPUT ---
-        mood, reply = bot.handle_user_input(u_input)
-        
-        # Print with custom formatting
-        print(f"   >>> Sentiment Detected: [{mood}]")
-        print(f"   >>> Bot: {reply}")
-        print("-" * 30)
-
-    # --- TIER 1: FINAL REPORT ---
-    print("\n" + "="*40)
-    print("📝 SESSION SUMMARY (Tier 1)")
-    print("="*40)
-    print("Generating report...")
-    final_report = bot.create_session_report()
-    print(f"Result: {final_report.strip()}")
-    print("="*40)
-
-if __name__ == "__main__":
-    start_program()
